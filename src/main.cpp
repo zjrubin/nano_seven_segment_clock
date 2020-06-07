@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "ds3231.h"
 
 #define ZERO 0xFC
 #define ONE 0x60
@@ -21,6 +22,8 @@
 #define THOUSANDS(x) (x / 1000) % 10
 
 void updateShiftRegister(const int digit);
+void shift_out_time(const RtcDateTime &time);
+inline uint8_t convert_24_hour_to_12_hour(uint8_t hours);
 
 const unsigned char digits_c[] = {ZERO, ONE, TWO, THREE, FOUR,
                                   FIVE, SIX, SEVEN, EIGHT, NINE};
@@ -34,16 +37,29 @@ void setup()
   pinMode(latchPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
-  Serial.begin(9600); // open the serial port at 9600 bps:
+  Serial.begin(BAUD_RATE); // open the serial port at 9600 bps:
+
+  setup_rtc_ds3231();
 }
 
 void loop()
 {
-  for (int i = 0; i < 10000; i++)
-  {
-    updateShiftRegister(i);
-    delay(DELAY);
-  }
+  RtcDateTime now = get_datetime();
+  shift_out_time(now);
+  delay(1000);
+}
+
+void shift_out_time(const RtcDateTime &time)
+{
+  uint8_t hours = convert_24_hour_to_12_hour(time.Hour());
+  uint8_t minutes = time.Minute();
+
+  digitalWrite(latchPin, LOW);
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(hours)]);
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(hours)]);
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(minutes)]);
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(minutes)]);
+  digitalWrite(latchPin, HIGH);
 }
 
 void updateShiftRegister(const int digit)
@@ -52,8 +68,6 @@ void updateShiftRegister(const int digit)
   byte tens = TENS(digit);
   byte hundreds = HUNDREDS(digit);
   byte thousands = THOUSANDS(digit);
-  //Serial.println(tens);
-  //Serial.println(ones);
 
   digitalWrite(latchPin, LOW);
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[thousands]);
@@ -61,4 +75,10 @@ void updateShiftRegister(const int digit)
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[tens]);
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ones]);
   digitalWrite(latchPin, HIGH);
+}
+
+inline uint8_t convert_24_hour_to_12_hour(uint8_t hours)
+{
+  hours = hours % 12;
+  return hours == 0 ? 12 : hours;
 }
