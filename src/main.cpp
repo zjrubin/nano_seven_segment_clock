@@ -11,6 +11,7 @@
 #define SEVEN 0xE0
 #define EIGHT 0xFE
 #define NINE 0xE6
+#define DOT(x) x | 0b01 // Turn on the dot pin
 
 #define NUM_ELEMENTS(x) ((sizeof(x) / sizeof(0 [x])) / ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
 
