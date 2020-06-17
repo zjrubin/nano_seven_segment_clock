@@ -54,12 +54,25 @@ void shift_out_time(const RtcDateTime &time)
 {
   uint8_t hours = convert_24_hour_to_12_hour(time.Hour());
   uint8_t minutes = time.Minute();
+  uint8_t seconds = time.Second();
 
   digitalWrite(latchPin, LOW);
+
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(hours)]);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(hours)]);
+  shiftOut(dataPin, clockPin, LSBFIRST, DOT(digits_c[ONES(hours)]));
+
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(minutes)]);
+
+#if NUM_DISPLAYS == 4
   shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(minutes)]);
+
+#elif NUM_DISPLAYS == 6
+  shiftOut(dataPin, clockPin, LSBFIRST, DOT(digits_c[ONES(minutes)]));
+
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(seconds)]);
+  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(seconds)]);
+#endif
+
   digitalWrite(latchPin, HIGH);
 }
 
