@@ -26,10 +26,6 @@ void setup_rtc_ds3231()
 {
     Serial.begin(BAUD_RATE);
 
-    Serial.print("compiled: ");
-    Serial.print(__DATE__);
-    Serial.println(__TIME__);
-
     //--------RTC SETUP ------------
     // if you are using ESP-01 then uncomment the line below to reset the pins to
     // the available pins for SDA, SCL
@@ -38,6 +34,9 @@ void setup_rtc_ds3231()
     Rtc.Begin();
 
     RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+    compiled += 8; // Compensation for upload time
+
+    Serial.print("Compiled: ");
     printDateTime(compiled);
     Serial.println();
 
@@ -94,47 +93,14 @@ void setup_rtc_ds3231()
     Rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
 }
 
-// void loop()
-// {
-//     if (!Rtc.IsDateTimeValid())
-//     {
-//         if (Rtc.LastError() != 0)
-//         {
-//             // we have a communications error
-//             // see https://www.arduino.cc/en/Reference/WireEndTransmission for
-//             // what the number means
-//             Serial.print("RTC communications error = ");
-//             Serial.println(Rtc.LastError());
-//         }
-//         else
-//         {
-//             // Common Causes:
-//             //    1) the battery on the device is low or even missing and the power line was disconnected
-//             Serial.println("RTC lost confidence in the DateTime!");
-//         }
-//     }
-
-//     RtcDateTime now = Rtc.GetDateTime();
-//     printDateTime(now);
-//     Serial.println();
-
-//     // RtcTemperature temp = Rtc.GetTemperature();
-//     // // temp.Print(Serial);
-//     // // you may also get the temperature as a float and print it
-//     // Serial.print(temp.AsFloatDegC());
-//     // Serial.println("C");
-
-//     delay(1000); // 1 seconds
-// }
-
-#define countof(a) (sizeof(a) / sizeof(a[0]))
+#define COUNT_OF(a) (sizeof(a) / sizeof(a[0]))
 
 static void printDateTime(const RtcDateTime &dt)
 {
     char datestring[20];
 
     snprintf_P(datestring,
-               countof(datestring),
+               COUNT_OF(datestring),
                PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
                dt.Month(),
                dt.Day(),

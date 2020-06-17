@@ -22,23 +22,21 @@
 #define HUNDREDS(x) (x / 100) % 10
 #define THOUSANDS(x) (x / 1000) % 10
 
-void updateShiftRegister(const int digit);
 void shift_out_time(const RtcDateTime &time);
-inline uint8_t convert_24_hour_to_12_hour(uint8_t hours);
+uint8_t convert_24_hour_to_12_hour(uint8_t hours);
 
-const unsigned char digits_c[] = {ZERO, ONE, TWO, THREE, FOUR,
-                                  FIVE, SIX, SEVEN, EIGHT, NINE};
+constexpr unsigned char digits_c[] = {ZERO, ONE, TWO, THREE, FOUR,
+                                      FIVE, SIX, SEVEN, EIGHT, NINE};
 
-const int dataPin = 8;
-const int latchPin = 9;
-const int clockPin = 10;
+constexpr int c_data_pin = 8;
+constexpr int c_latch_pin = 9;
+constexpr int c_clock_pin = 10;
 
 void setup()
 {
-  pinMode(latchPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  Serial.begin(BAUD_RATE); // open the serial port at 9600 bps:
+  pinMode(c_latch_pin, OUTPUT);
+  pinMode(c_data_pin, OUTPUT);
+  pinMode(c_clock_pin, OUTPUT);
 
   setup_rtc_ds3231();
 }
@@ -56,42 +54,27 @@ void shift_out_time(const RtcDateTime &time)
   uint8_t minutes = time.Minute();
   uint8_t seconds = time.Second();
 
-  digitalWrite(latchPin, LOW);
+  digitalWrite(c_latch_pin, LOW);
 
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(hours)]);
-  shiftOut(dataPin, clockPin, LSBFIRST, DOT(digits_c[ONES(hours)]));
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(hours)]);
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(hours)]));
 
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(minutes)]);
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(minutes)]);
 
 #if NUM_DISPLAYS == 4
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(minutes)]);
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(minutes)]);
 
 #elif NUM_DISPLAYS == 6
-  shiftOut(dataPin, clockPin, LSBFIRST, DOT(digits_c[ONES(minutes)]));
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(minutes)]));
 
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[TENS(seconds)]);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ONES(seconds)]);
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(seconds)]);
+  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(seconds)]);
 #endif
 
-  digitalWrite(latchPin, HIGH);
+  digitalWrite(c_latch_pin, HIGH);
 }
 
-void updateShiftRegister(const int digit)
-{
-  byte ones = ONES(digit);
-  byte tens = TENS(digit);
-  byte hundreds = HUNDREDS(digit);
-  byte thousands = THOUSANDS(digit);
-
-  digitalWrite(latchPin, LOW);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[thousands]);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[hundreds]);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[tens]);
-  shiftOut(dataPin, clockPin, LSBFIRST, digits_c[ones]);
-  digitalWrite(latchPin, HIGH);
-}
-
-inline uint8_t convert_24_hour_to_12_hour(uint8_t hours)
+uint8_t convert_24_hour_to_12_hour(uint8_t hours)
 {
   hours = hours % 12;
   return hours == 0 ? 12 : hours;
