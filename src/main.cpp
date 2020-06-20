@@ -37,12 +37,20 @@ constexpr int c_clock_pin = 10;
 
 void setup()
 {
+    pinMode(c_latch_pin, OUTPUT);
+    pinMode(c_data_pin, OUTPUT);
+    pinMode(c_clock_pin, OUTPUT);
+
+    setup_rtc_ds3231();
+
     xTaskCreate(task_update_time, "update_time",
-                configMINIMAL_STACK_SIZE, NULL, 0, NULL);
+                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 }
 
 void loop()
 {
+    // Serial.println(F("Going to sleep!"));
+
     // There are several macros provided in the  header file to actually put
     // the device into sleep mode.
     // See ATmega328p Datasheet for more detailed descriptions.
@@ -68,16 +76,12 @@ void loop()
     // Ugh. Yawn... I've been woken up. Better disable sleep mode.
     // Reset the sleep_mode() faster than sleep_disable();
     sleep_reset();
+
+    // Serial.println(F("Wake up!"));
 }
 
 void task_update_time(void *pvParameters)
 {
-    pinMode(c_latch_pin, OUTPUT);
-    pinMode(c_data_pin, OUTPUT);
-    pinMode(c_clock_pin, OUTPUT);
-
-    setup_rtc_ds3231();
-
     for (;;)
     {
         RtcDateTime now = get_datetime();
