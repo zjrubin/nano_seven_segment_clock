@@ -34,48 +34,48 @@ constexpr int c_clock_pin = 10;
 
 void setup()
 {
-  pinMode(c_latch_pin, OUTPUT);
-  pinMode(c_data_pin, OUTPUT);
-  pinMode(c_clock_pin, OUTPUT);
+    pinMode(c_latch_pin, OUTPUT);
+    pinMode(c_data_pin, OUTPUT);
+    pinMode(c_clock_pin, OUTPUT);
 
-  setup_rtc_ds3231();
+    setup_rtc_ds3231();
 }
 
 void loop()
 {
-  RtcDateTime now = get_datetime();
-  shift_out_time(now);
-  delay(1000);
+    RtcDateTime now = get_datetime();
+    shift_out_time(now);
+    delay(1000);
 }
 
 void shift_out_time(const RtcDateTime &time)
 {
-  uint8_t hours = convert_24_hour_to_12_hour(time.Hour());
-  uint8_t minutes = time.Minute();
-  uint8_t seconds = time.Second();
+    uint8_t hours = convert_24_hour_to_12_hour(time.Hour());
+    uint8_t minutes = time.Minute();
+    uint8_t seconds = time.Second();
 
-  digitalWrite(c_latch_pin, LOW);
+    digitalWrite(c_latch_pin, LOW);
 
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(hours)]);
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(hours)]));
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(hours)]);
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(hours)]));
 
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(minutes)]);
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(minutes)]);
 
 #if NUM_DISPLAYS == 4
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(minutes)]);
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(minutes)]);
 
 #elif NUM_DISPLAYS == 6
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(minutes)]));
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[ONES(minutes)]));
 
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(seconds)]);
-  shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(seconds)]);
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[TENS(seconds)]);
+    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[ONES(seconds)]);
 #endif
 
-  digitalWrite(c_latch_pin, HIGH);
+    digitalWrite(c_latch_pin, HIGH);
 }
 
 uint8_t convert_24_hour_to_12_hour(uint8_t hours)
 {
-  hours = hours % 12;
-  return hours == 0 ? 12 : hours;
+    hours = hours % 12;
+    return hours == 0 ? 12 : hours;
 }
