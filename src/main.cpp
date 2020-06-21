@@ -13,6 +13,7 @@
 #define SEVEN 0xE0
 #define EIGHT 0xFE
 #define NINE 0xE6
+#define DP 0x01         // Decimal point
 #define DOT(x) x | 0b01 // Turn on the dot pin
 
 #define NUM_ELEMENTS(x) ((sizeof(x) / sizeof(0 [x])) / ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
@@ -24,11 +25,13 @@
 #define HUNDREDS(x) (x / 100) % 10
 #define THOUSANDS(x) (x / 1000) % 10
 
+void task_hello_message(void *pvParameters);
 void task_display_date(void *pvParameters);
 void task_display_cycle(void *pvParameters);
 void shift_out_time(const RtcDateTime &time);
 void shift_out_date(const RtcDateTime &time);
 void shift_out_digit(uint8_t digit);
+void shift_out_bytes(const uint8_t *byte_array, size_t len);
 uint8_t convert_24_hour_to_12_hour(uint8_t hours);
 
 constexpr unsigned char digits_c[] = {ZERO, ONE, TWO, THREE, FOUR,
@@ -97,11 +100,14 @@ void setup()
 
     setup_rtc_ds3231();
 
-    xTaskCreate(task_display_date, "display_date",
-                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+    xTaskCreate(task_hello_message, "hello_message",
+                75, NULL, 3, NULL);
 
     xTaskCreate(task_display_cycle, "display_cycle",
-                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+                75, NULL, 2, NULL);
+
+    xTaskCreate(task_display_date, "display_date",
+                75, NULL, 1, NULL);
 }
 
 void loop() // This is the idle task
@@ -145,6 +151,18 @@ void task_display_cycle(void *pvParameters)
 
         // Wait for 10 minutes
         vTaskDelay(10 * 60);
+    }
+}
+
+void task_hello_message(void *pvParameters)
+{
+    constexpr uint8_t hello_bytes[] = {0b01101110, 0b10011110, 0b00011100, 0b00011100, ZERO, DP};
+    for (;;)
+    {
+        shift_out_bytes(hello_bytes, NUM_ELEMENTS(hello_bytes));
+        delay(5000);
+
+        vTaskDelay(15 * 60);
     }
 }
 
@@ -203,16 +221,22 @@ void shift_out_digit(uint8_t digit)
 {
     digitalWrite(c_latch_pin, LOW);
 
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
+    for (int i = 0; i < NUM_DISPLAYS; ++i)
+    {
+        shiftOut(c_data_pin, c_clock_pin, LSBFIRST, DOT(digits_c[digit]));
+    }
 
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
+    digitalWrite(c_latch_pin, HIGH);
+}
 
-#if NUM_DISPLAYS == 6
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
-    shiftOut(c_data_pin, c_clock_pin, LSBFIRST, digits_c[digit]);
-#endif
+void shift_out_bytes(const uint8_t *byte_array, size_t len)
+{
+    digitalWrite(c_latch_pin, LOW);
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        shiftOut(c_data_pin, c_clock_pin, LSBFIRST, byte_array[i]);
+    }
 
     digitalWrite(c_latch_pin, HIGH);
 }
