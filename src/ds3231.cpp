@@ -34,7 +34,9 @@ void setup_rtc_ds3231()
     Rtc.Begin();
 
     RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
-    compiled += 12; // Compensation for upload time
+    compiled += 11; // Compensation for upload time
+
+    // Rtc.SetDateTime(compiled);
 
     Serial.print("Compiled: ");
     printDateTime(compiled);
