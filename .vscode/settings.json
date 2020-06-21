@@ -1,3 +1,11 @@
 {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "cSpell.words": [
+        "a",
+        "a tmega",
+        "off",
+        "tmega",
+        "usart",
+        "usart off"
+    ]
 }
