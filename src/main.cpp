@@ -101,13 +101,13 @@ void setup()
     setup_rtc_ds3231();
 
     xTaskCreate(task_hello_message, "hello_message",
-                75, NULL, 3, NULL);
+                100, NULL, 3, NULL);
 
     xTaskCreate(task_display_cycle, "display_cycle",
-                75, NULL, 2, NULL);
+                100, NULL, 2, NULL);
 
     xTaskCreate(task_display_date, "display_date",
-                75, NULL, 1, NULL);
+                100, NULL, 1, NULL);
 }
 
 void loop() // This is the idle task
