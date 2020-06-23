@@ -87,13 +87,13 @@ void task_display_cycle(void *pvParameters)
         for (int i = 0; i < 10; ++i)
         {
             shift_out_digit(i);
-            delay(100); // Freeze the display
+            delay(250); // Freeze the display
         }
 
         for (int i = 9; i >= 0; --i)
         {
             shift_out_digit(i);
-            delay(100); // Freeze the display
+            delay(250); // Freeze the display
         }
 
         delay(500);
