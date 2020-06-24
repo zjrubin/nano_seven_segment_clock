@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
+#include <avr/pgmspace.h>
 #include <avr/power.h>
 #include <string.h>
 
@@ -17,13 +18,15 @@
 #define THOUSANDS(x) (x / 1000) % 10
 
 void task_hello_message(void *pvParameters);
+void task_display_messages(void *pvParameters);
 void task_display_date(void *pvParameters);
 void task_display_cycle(void *pvParameters);
 void shift_out_time(const RtcDateTime &time);
 void shift_out_date(const RtcDateTime &time);
 void shift_out_digit(uint8_t digit);
 void shift_out_bytes(const uint8_t *byte_array, size_t len);
-void scroll_text(const char *text, size_t len, size_t scroll_delay_ms);
+void scroll_text(const char *text, size_t len, size_t scroll_delay_ms,
+                 bool end_scroll_to_blank = false);
 void blank_display();
 uint8_t convert_24_hour_to_12_hour(uint8_t hours);
 
@@ -41,15 +44,9 @@ void setup()
 
     blank_display();
 
-    //   scroll_text(
-    //       "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
-    //       strlen(
-    //           "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ
-    //           abcdefghijklmnopqrstuvwxyz"),
-    //       1000);
-    //   delay(1000);
+    // xTaskCreate(task_hello_message, "hello_message", 125, NULL, 3, NULL);
 
-    xTaskCreate(task_hello_message, "hello_message", 100, NULL, 3, NULL);
+    xTaskCreate(task_display_messages, "messages", 315, NULL, 3, NULL);
 
     xTaskCreate(task_display_cycle, "display_cycle", 100, NULL, 2, NULL);
 
@@ -102,13 +99,42 @@ void task_display_cycle(void *pvParameters)
 
 void task_hello_message(void *pvParameters)
 {
-    constexpr uint8_t hello_bytes[] = {0b01101110, 0b10011110, 0b00011100, 0b00011100, ZERO, DP};
+    constexpr uint8_t hello_bytes[] = {LETTER_H, LETTER_E, LETTER_L, LETTER_L, LETTER_O, DP};
     for (;;)
     {
         shift_out_bytes(hello_bytes, NUM_ELEMENTS(hello_bytes));
         delay(5000);
 
         vTaskDelay(15 * 60);
+    }
+}
+
+void task_display_messages(void *pvParameters)
+{
+    static const char message_credits[] PROGMEM = "Seven-segment Clock by Zachary Rubin";
+    static const char message_hello_world[] PROGMEM = "HELLO WORLD";
+    static const char message_mending_wall[] PROGMEM = "He says again 'Good fences make good neighbors.'";
+    static const char message_ozymandias[] PROGMEM = "My name is Ozymandias King of Kings. Look on my Works ye Mighty and despair";
+    static const char message_hollow_men[] PROGMEM = "Mistah Kurtz-he dead.";
+    static const char message_hamlet[] PROGMEM = "To be, or not to be that is the question Whether 'tis nobler in the mind to suffer The slings and arrows of outrageous fortune Or to take arms against a sea of troubles And by opposing end them.";
+    static const char *const messages[] PROGMEM = {message_credits, message_hello_world,
+                                                   message_mending_wall, message_ozymandias,
+                                                   message_hollow_men, message_hamlet};
+    size_t i = 0;
+
+    char message_buffer[200];
+
+    for (;;)
+    {
+        // Read in message string from flash memory into SRAM
+        strcpy_P(message_buffer, (char *)pgm_read_word(&(messages[i])));
+
+        scroll_text(message_buffer, strlen(message_buffer), 325, true);
+        delay(300);
+
+        i = (i + 1) % NUM_ELEMENTS(messages);
+
+        vTaskDelay(60 * 60);
     }
 }
 
@@ -187,7 +213,7 @@ void shift_out_bytes(const uint8_t *byte_array, size_t len)
     digitalWrite(c_latch_pin, HIGH);
 }
 
-void scroll_text(const char *text, size_t len, size_t scroll_delay_ms)
+void scroll_text(const char *text, size_t len, size_t scroll_delay_ms, bool end_scroll_to_blank)
 {
     blank_display();
 
@@ -201,6 +227,21 @@ void scroll_text(const char *text, size_t len, size_t scroll_delay_ms)
         digitalWrite(c_latch_pin, HIGH);
 
         delay(scroll_delay_ms);
+    }
+
+    if (end_scroll_to_blank)
+    {
+        // Blank the display by scrolling the text off of it
+        for (size_t i = 0; i < NUM_DISPLAYS; ++i)
+        {
+            digitalWrite(c_latch_pin, LOW);
+
+            shiftOut(c_data_pin, c_clock_pin, LSBFIRST, BLANK);
+
+            digitalWrite(c_latch_pin, HIGH);
+
+            delay(scroll_delay_ms);
+        }
     }
 }
 
