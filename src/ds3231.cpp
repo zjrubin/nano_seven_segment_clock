@@ -38,7 +38,7 @@ void setup_rtc_ds3231()
 
     // Rtc.SetDateTime(compiled);
 
-    Serial.print("Compiled: ");
+    Serial.print(F("Compiled: "));
     printDateTime(compiled);
     Serial.println();
 
@@ -49,7 +49,7 @@ void setup_rtc_ds3231()
             // we have a communications error
             // see https://www.arduino.cc/en/Reference/WireEndTransmission for
             // what the number means
-            Serial.print("RTC communications error = ");
+            Serial.print(F("RTC communications error = "));
             Serial.println(Rtc.LastError());
         }
         else
@@ -58,7 +58,7 @@ void setup_rtc_ds3231()
             //    1) first time you ran and the device wasn't running yet
             //    2) the battery on the device is low or even missing
 
-            Serial.println("RTC lost confidence in the DateTime!");
+            Serial.println(F("RTC lost confidence in the DateTime!"));
 
             // following line sets the RTC to the date & time this sketch was compiled
             // it will also reset the valid flag internally unless the Rtc device is
@@ -70,23 +70,23 @@ void setup_rtc_ds3231()
 
     if (!Rtc.GetIsRunning())
     {
-        Serial.println("RTC was not actively running, starting now");
+        Serial.println(F("RTC was not actively running, starting now"));
         Rtc.SetIsRunning(true);
     }
 
     RtcDateTime now = Rtc.GetDateTime();
     if (now < compiled)
     {
-        Serial.println("RTC is older than compile time!  (Updating DateTime)");
+        Serial.println(F("RTC is older than compile time!  (Updating DateTime)"));
         Rtc.SetDateTime(compiled);
     }
     else if (now > compiled)
     {
-        Serial.println("RTC is newer than compile time. (this is expected)");
+        Serial.println(F("RTC is newer than compile time. (this is expected)"));
     }
     else if (now == compiled)
     {
-        Serial.println("RTC is the same as compile time! (not expected but all is fine)");
+        Serial.println(F("RTC is the same as compile time! (not expected but all is fine)"));
     }
 
     // never assume the Rtc was last configured by you, so
