@@ -1,7 +1,5 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
-#include <avr/pgmspace.h>
-#include <avr/power.h>
 #include <string.h>
 
 #include "characters.h"
@@ -12,6 +10,9 @@
 
 #define DELAY 1000
 
+constexpr size_t c_minute_freertos = (60 * (1024 / portTICK_PERIOD_MS));
+#define MINUTE_FREERTOS c_minute_freertos
+
 #define ONES(x) x % 10
 #define TENS(x) (x / 10) % 10
 #define HUNDREDS(x) (x / 100) % 10
@@ -20,7 +21,7 @@
 void task_hello_message(void *pvParameters);
 void task_display_messages(void *pvParameters);
 void task_display_date(void *pvParameters);
-void task_display_cycle(void *pvParameters);
+void task_digit_cycle(void *pvParameters);
 void shift_out_time(const RtcDateTime &time);
 void shift_out_date(const RtcDateTime &time);
 void shift_out_digit(uint8_t digit);
@@ -46,14 +47,15 @@ void setup()
 
     // xTaskCreate(task_hello_message, "hello_message", 125, NULL, 3, NULL);
 
-    xTaskCreate(task_display_messages, "messages", 315, NULL, 3, NULL);
+    xTaskCreate(task_display_messages, "messages", 415, NULL, 3, NULL);
 
-    xTaskCreate(task_display_cycle, "display_cycle", 100, NULL, 2, NULL);
+    xTaskCreate(task_digit_cycle, "display_cycle", 125, NULL, 2, NULL);
 
-    xTaskCreate(task_display_date, "display_date", 100, NULL, 1, NULL);
+    xTaskCreate(task_display_date, "display_date", 125, NULL, 1, NULL);
 }
 
-void loop() // This is the idle task
+// This is the idle task
+void loop()
 {
     // Update the display to show the current time
     RtcDateTime now = get_datetime();
@@ -70,11 +72,11 @@ void task_display_date(void *pvParameters)
         delay(5000); // Freeze the display
 
         // Wait for 5 minute (5 * 60 ticks if  #define portUSE_WDTO WDTO_1S)
-        vTaskDelay(5 * 60);
+        vTaskDelay(3 * MINUTE_FREERTOS);
     }
 }
 
-void task_display_cycle(void *pvParameters)
+void task_digit_cycle(void *pvParameters)
 {
     for (;;)
     {
@@ -93,7 +95,7 @@ void task_display_cycle(void *pvParameters)
         delay(500);
 
         // Wait for 10 minutes
-        vTaskDelay(10 * 60);
+        vTaskDelay(10 * MINUTE_FREERTOS);
     }
 }
 
@@ -105,7 +107,7 @@ void task_hello_message(void *pvParameters)
         shift_out_bytes(hello_bytes, NUM_ELEMENTS(hello_bytes));
         delay(5000);
 
-        vTaskDelay(15 * 60);
+        vTaskDelay(15 * MINUTE_FREERTOS);
     }
 }
 
@@ -117,7 +119,8 @@ void task_display_messages(void *pvParameters)
     static const char message_ozymandias[] PROGMEM = "My name is Ozymandias King of Kings. Look on my Works ye Mighty and despair";
     static const char message_hollow_men[] PROGMEM = "Mistah Kurtz-he dead.";
     static const char message_hamlet[] PROGMEM = "To be, or not to be that is the question Whether 'tis nobler in the mind to suffer The slings and arrows of outrageous fortune Or to take arms against a sea of troubles And by opposing end them.";
-    static const char *const messages[] PROGMEM = {message_credits, message_hello_world,
+    static const char message_alphabet[] PROGMEM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
+    static const char *const messages[] PROGMEM = {message_credits, message_alphabet, message_hello_world,
                                                    message_mending_wall, message_ozymandias,
                                                    message_hollow_men, message_hamlet};
     size_t i = 0;
@@ -129,12 +132,12 @@ void task_display_messages(void *pvParameters)
         // Read in message string from flash memory into SRAM
         strcpy_P(message_buffer, (char *)pgm_read_word(&(messages[i])));
 
-        scroll_text(message_buffer, strlen(message_buffer), 325, true);
+        scroll_text(message_buffer, strlen(message_buffer), 400, true);
         delay(300);
 
         i = (i + 1) % NUM_ELEMENTS(messages);
 
-        vTaskDelay(60 * 60);
+        vTaskDelay(30 * MINUTE_FREERTOS);
     }
 }
 
