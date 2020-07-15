@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
+#include <semphr.h>
 #include <string.h>
 
 #include "characters.h"
@@ -20,8 +21,10 @@ constexpr size_t c_minute_freertos = (60 * (1024 / portTICK_PERIOD_MS));
 
 void task_hello_message(void *pvParameters);
 void task_display_messages(void *pvParameters);
+void task_display_time(void *pvParameters);
 void task_display_date(void *pvParameters);
 void task_digit_cycle(void *pvParameters);
+void display_date(const RtcDateTime &time);
 void shift_out_time(const RtcDateTime &time);
 void shift_out_date(const RtcDateTime &time);
 void shift_out_digit(uint8_t digit);
@@ -35,6 +38,8 @@ constexpr int c_data_pin = 8;
 constexpr int c_latch_pin = 9;
 constexpr int c_clock_pin = 10;
 
+SemaphoreHandle_t g_rtc_mutex = NULL;
+
 void setup()
 {
     pinMode(c_latch_pin, OUTPUT);
@@ -45,33 +50,56 @@ void setup()
 
     blank_display();
 
+    g_rtc_mutex = xSemaphoreCreateMutex();
+
     // xTaskCreate(task_hello_message, "hello_message", 125, NULL, 3, NULL);
 
-    xTaskCreate(task_display_messages, "messages", 415, NULL, 3, NULL);
+    xTaskCreate(task_display_messages, "messages", 315, NULL, 3, NULL);
 
-    xTaskCreate(task_digit_cycle, "display_cycle", 125, NULL, 2, NULL);
+    xTaskCreate(task_digit_cycle, "display_cycle", 75, NULL, 2, NULL);
 
-    xTaskCreate(task_display_date, "display_date", 125, NULL, 1, NULL);
+    xTaskCreate(task_display_date, "display_date", 100, NULL, 1, NULL);
+
+    xTaskCreate(task_display_time, "display_time", 100, NULL, 0, NULL);
 }
 
 // This is the idle task
 void loop()
 {
-    // Update the display to show the current time
-    RtcDateTime now = get_datetime();
-    shift_out_time(now);
+}
+
+void task_display_time(void *pvParameters)
+{
+    configASSERT(g_rtc_mutex != NULL);
+
+    for (;;)
+    {
+        if (xSemaphoreTake(g_rtc_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            RtcDateTime now = get_datetime();
+            shift_out_time(now);
+            xSemaphoreGive(g_rtc_mutex);
+        }
+
+        vTaskDelay(45 / portTICK_PERIOD_MS);
+    }
 }
 
 void task_display_date(void *pvParameters)
 {
+    configASSERT(g_rtc_mutex != NULL);
+
     for (;;)
     {
-        RtcDateTime now = get_datetime();
-        shift_out_date(now);
+        if (xSemaphoreTake(g_rtc_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            RtcDateTime now = get_datetime();
+            shift_out_date(now);
+            xSemaphoreGive(g_rtc_mutex);
+        }
 
         delay(5000); // Freeze the display
 
-        // Wait for 5 minute (5 * 60 ticks if  #define portUSE_WDTO WDTO_1S)
         vTaskDelay(3 * MINUTE_FREERTOS);
     }
 }
@@ -94,7 +122,6 @@ void task_digit_cycle(void *pvParameters)
 
         delay(500);
 
-        // Wait for 10 minutes
         vTaskDelay(10 * MINUTE_FREERTOS);
     }
 }
@@ -140,6 +167,13 @@ void task_display_messages(void *pvParameters)
         vTaskDelay(30 * MINUTE_FREERTOS);
     }
 }
+
+// void display_date(const RtcDateTime &time)
+// {
+//     shift_out_date(time);
+
+//     delay(5000); // Freeze the display
+// }
 
 void shift_out_time(const RtcDateTime &time)
 {
